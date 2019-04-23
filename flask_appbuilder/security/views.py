@@ -235,12 +235,6 @@ class UserModelView(ModelView):
             appbuilder=self.appbuilder,
         )
 
-    @action("userinfoedit", lazy_gettext("Edit User"), "", "fa-edit", multiple=False)
-    def userinfoedit(self, item):
-        return redirect(
-            url_for(self.appbuilder.sm.userinfoeditview.__name__ + ".this_form_get")
-        )
-
 
 class UserOIDModelView(UserModelView):
     """
@@ -344,7 +338,6 @@ class UserDBModelView(UserModelView):
     def userinfo(self):
         actions = dict()
         actions["resetmypassword"] = self.actions.get("resetmypassword")
-        actions["userinfoedit"] = self.actions.get("userinfoedit")
 
         item = self.datamodel.get(g.user.id, self._base_filters)
         widgets = self._get_show_widget(
