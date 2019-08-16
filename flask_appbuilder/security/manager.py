@@ -780,6 +780,7 @@ class BaseSecurityManager(AbstractSecurityManager):
                 self.auth_ldap_firstname_field,
                 self.auth_ldap_lastname_field,
                 self.auth_ldap_email_field,
+                'memberof'
             ],
         )
         if user:
@@ -894,14 +895,14 @@ class BaseSecurityManager(AbstractSecurityManager):
             # If user does not exist on the DB and not self user registration, go away
             if not user and not self.auth_user_registration:
                 return None
+            self._bind_indirect_user(ldap, con)
+            ldap_user_search = self._search_ldap(ldap, con, username)
+            if not ldap_user_search:
+                log.warning(LOGMSG_WAR_SEC_NOLDAP_OBJ.format(username))
+                return None
+            ldap_user_info = ldap_user_search[0][1]
             # User does not exist, create one if self registration
             if not user:
-                self._bind_indirect_user(ldap, con)
-                ldap_user_search = self._search_ldap(ldap, con, username)
-                if not ldap_user_search:
-                    log.warning(LOGMSG_WAR_SEC_NOLDAP_OBJ.format(username))
-                    return None
-                ldap_user_info = ldap_user_search[0][1]
                 user = self.add_user(
                     username=username,
                     first_name=self.ldap_extract(
@@ -917,6 +918,21 @@ class BaseSecurityManager(AbstractSecurityManager):
                     ),
                     role=self.find_role(self.auth_user_registration_role),
                 )
+
+            role_admin = self.find_role(self.auth_role_admin)
+            group_admin = 'cn=systems_dev_mfa,cn=groups,cn=accounts,dc=cenic,dc=org'
+            if 'memberof' not in ldap_user_info.keys():
+                user_groups = []
+            else:
+                user_groups = list(map(
+                    lambda x: x.decode('utf-8'),
+                    ldap_user_info['memberof']
+                ))
+            if role_admin not in user.roles and group_admin in user_groups:
+                user.roles += [role_admin]
+            elif role_admin in user.roles and group_admin not in user_groups:
+                user.roles.remove(role_admin)
+
             self.update_user_auth_stat(user)
             return user
         except ldap.LDAPError as e:
