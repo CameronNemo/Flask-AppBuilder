@@ -80,7 +80,7 @@ class Model2SchemaConverter(BaseModel2SchemaConverter):
         for k, v in schema._declared_fields.items():
             print(k, v)
 
-    def _meta_schema_factory(self, columns, model, class_mixin):
+    def _meta_schema_factory(self, columns, model, class_mixin, exclude):
         """
             Creates ModelSchema marshmallow-sqlalchemy
 
@@ -90,12 +90,14 @@ class Model2SchemaConverter(BaseModel2SchemaConverter):
         :return: ModelSchema
         """
         _model = model
+        _exclude = exclude
         if columns:
 
             class MetaSchema(SQLAlchemyAutoSchema, class_mixin):
                 class Meta:
                     model = _model
                     fields = columns
+                    exclude = _exclude
                     strict = True
                     load_instance = True
                     sqla_session = self.datamodel.session
@@ -105,6 +107,7 @@ class Model2SchemaConverter(BaseModel2SchemaConverter):
             class MetaSchema(SQLAlchemyAutoSchema, class_mixin):
                 class Meta:
                     model = _model
+                    exclude = _exclude
                     strict = True
                     load_instance = True
                     sqla_session = self.datamodel.session
@@ -206,7 +209,12 @@ class Model2SchemaConverter(BaseModel2SchemaConverter):
 
         _columns = list()
         tree_columns = columns2Tree(columns)
+        exclude_columns = getattr(_model, 'marshmallow_exclude_columns', None)
+        if exclude_columns is None:
+            exclude_columns = ()
         for column in tree_columns.root.childs:
+            if column.data in exclude_columns:
+                continue
             # Get child model is column is dotted notation
             ma_sqla_fields_override[column.data] = self._column2field(
                 _datamodel, column, nested, enum_dump_by_name
@@ -214,4 +222,4 @@ class Model2SchemaConverter(BaseModel2SchemaConverter):
             _columns.append(column.data)
         for k, v in ma_sqla_fields_override.items():
             setattr(SchemaMixin, k, v)
-        return self._meta_schema_factory(_columns, _model, SchemaMixin)()
+        return self._meta_schema_factory(_columns, _model, SchemaMixin, exclude_columns)()
