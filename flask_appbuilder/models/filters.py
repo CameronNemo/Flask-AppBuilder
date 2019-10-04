@@ -24,6 +24,7 @@ class BaseFilter(object):
     model = None
     name = ""
     is_related_view = False
+    case_sensitive = False
     """
         Sets this filter to a special kind for related views.
         If true this filter was not set by the user
