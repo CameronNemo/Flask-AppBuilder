@@ -803,6 +803,8 @@ class BaseCRUDView(BaseModelView):
     """ Add widget override """
     show_widget = ShowWidget
     """ Show widget override """
+    title_column = None
+    """ Column to use for rendering the page and widget titles """
 
     actions = None
 
@@ -1067,6 +1069,7 @@ class BaseCRUDView(BaseModelView):
             formatters_columns=self.formatters_columns,
             actions=actions,
             fieldsets=show_fieldsets,
+            title_column=self.title_column,
             modelview_name=self.__class__.__name__,
         )
         return widgets
@@ -1090,6 +1093,7 @@ class BaseCRUDView(BaseModelView):
             include_cols=self.edit_columns,
             exclude_cols=exclude_cols,
             fieldsets=self.edit_fieldsets,
+            title_column=self.title_column,
         )
         return widgets
 
