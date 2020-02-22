@@ -1388,6 +1388,11 @@ class BaseSecurityManager(AbstractSecurityManager):
         for role in roles:
             permissions = list(role.permissions)
             for pvm in permissions:
+                if pvm.permission is None:
+                    log.warning(
+                        "Skipping convergence for broken permission: %s", pvm
+                    )
+                    continue
                 new_pvm_states = state_transitions["add"].get(
                     (pvm.view_menu.name, pvm.permission.name)
                 )
