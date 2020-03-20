@@ -91,6 +91,7 @@ class Model2SchemaConverter(BaseModel2SchemaConverter):
         """
         _model = model
         _exclude = exclude
+
         if columns:
 
             class MetaSchema(ModelSchema, class_mixin):
@@ -203,15 +204,22 @@ class Model2SchemaConverter(BaseModel2SchemaConverter):
         tree_columns = columns2Tree(columns)
         exclude_columns = getattr(_model, 'marshmallow_exclude_columns', None)
         if exclude_columns is None:
-            exclude_columns = ()
+            exclude_columns = set()
+        else:
+            exclude_columns = set(exclude_columns)
         for column in tree_columns.root.childs:
             if column.data in exclude_columns:
+                exclude_columns -= {column.data}
                 continue
             # Get child model is column is dotted notation
             ma_sqla_fields_override[column.data] = self._column2field(
                 _datamodel, column, nested, enum_dump_by_name
             )
             _columns.append(column.data)
+        if _columns:
+            exclude_columns = set()
         for k, v in ma_sqla_fields_override.items():
             setattr(SchemaMixin, k, v)
-        return self._meta_schema_factory(_columns, _model, SchemaMixin, exclude_columns)()
+        return self._meta_schema_factory(
+            _columns, _model, SchemaMixin, list(exclude_columns)
+        )()
